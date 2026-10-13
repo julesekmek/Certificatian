@@ -47,7 +47,19 @@ textarea { min-height:190px; line-height:1.45; resize:vertical; }
 .btn:disabled { opacity:.45; cursor:not-allowed; }
 .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 .result { display:none; margin-top:8px; }
-.result .card { border-radius:18px; overflow:hidden; border:1px solid var(--line); margin:18px 0; }
+.result h1 { font-size:clamp(21px, 6.4vw, 30px); white-space:nowrap; }
+.result .card { margin:18px 0 10px; }
+.result .card img { display:block; width:100%; height:auto; -webkit-touch-callout:default; }
+.edit { display:block; margin:0 auto 22px; background:none; border:0; color:var(--label); font:600 14px 'Inter', sans-serif; text-decoration:underline; text-underline-offset:3px; cursor:pointer; padding:8px; }
+.actions { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:6px; }
+.act { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; min-height:72px; padding:10px 4px;
+  border-radius:18px; border:1px solid var(--line); background:rgba(255,255,255,.06); color:#fff; text-decoration:none;
+  font:700 clamp(11.5px, 3.3vw, 13px) 'Inter', sans-serif; white-space:nowrap; cursor:pointer; }
+.act svg { width:22px; height:22px; }
+.act.primary { border:0; background:linear-gradient(135deg,var(--peach),var(--coral)); color:#1a0d07; }
+.hint { margin-top:12px; text-align:center; font-size:13px; line-height:1.45; color:var(--muted); }
+.hint b { color:var(--label); font-weight:600; }
+.result .card { border-radius:18px; overflow:hidden; border:1px solid var(--line); }
 .variants { display:flex; gap:8px; margin:6px 0 10px; }
 .variants button { flex:1; padding:10px; border-radius:999px; border:1px solid var(--line); background:transparent; color:var(--muted); font:600 13px 'Inter', sans-serif; }
 .variants button.on { border-color:var(--peach); color:var(--label); }
@@ -89,23 +101,26 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, .photo:focus-
 
   <section class="result" id="step2">
     <h1>Votre certificat est <span>prêt</span></h1>
-    <div class="card"><canvas id="cert" width="1080" height="1350" aria-label="Votre certificat"></canvas></div>
+    <div class="card"><img id="certImg" alt="Votre certificat Persona 2.0"></div>
+    <button class="edit" id="back" type="button">Modifier mes informations</button>
+    <canvas id="cert" width="1080" height="1350" hidden></canvas>
 
     <label class="f">Ce qui vous a le plus marqué (facultatif)<input type="text" id="marque" maxlength="140" placeholder="Ex. : voir mon persona répondre avec de vrais verbatims"></label>
     <div style="margin-top:14px" class="f"><span style="font-size:13px;font-weight:600;color:var(--muted)">Votre post</span></div>
     <div class="variants" role="tablist"><button data-v="0" class="on">Version 1</button><button data-v="1">Version 2</button><button data-v="2">Version 3</button></div>
     <textarea id="post" aria-label="Texte du post"></textarea>
 
-    <div class="tip">Dans LinkedIn, <b>collez le texte</b> puis pensez à identifier <b>Jules Ekmekdjian</b> et <b>Thibaut Sainrat</b> en tapant <b>@</b> devant leur nom.</div>
+    <div class="tip">Dans LinkedIn, ajoutez votre certificat, collez le texte, puis <b>retapez @</b> devant <b>Jules Ekmekdjian</b> et <b>Thibaut Sainrat</b> pour nous identifier.</div>
 
-    <div class="stack">
-      <button class="btn primary" id="share">Partager sur LinkedIn</button>
-      <div class="row">
-        <button class="btn ghost" id="download">Télécharger</button>
-        <button class="btn ghost" id="copy">Copier le texte</button>
-      </div>
-      <button class="btn ghost" id="back">Modifier mes informations</button>
+    <div class="actions">
+      <button class="act primary" id="download" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Télécharger</button>
+      <button class="act" id="copy" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>Copier le texte</button>
+      <a class="act" id="open" href="https://www.linkedin.com/feed/" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>Ouvrir LinkedIn</a>
     </div>
+    <p class="hint" id="hint"></p>
   </section>
 
   <p class="foot">Rien n'est conservé : votre certificat est généré sur votre téléphone.<br>Atelier Persona 2.0 · AI Discipline × Cardiweb</p>
@@ -115,7 +130,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, .photo:focus-
 <script>
 /* ===================== CONFIGURATION ===================== */
 const CONFIG = {
-  dateAtelier: "13 Octobre 2026",              // ← à remplacer par la date de l'atelier
+  dateAtelier: "13 octobre 2026",
   annee: "2026",
   description: "Créer un agent IA connecté à un RAG de ses interviews utilisateurs",
   animateurs: [
@@ -127,19 +142,21 @@ const CONFIG = {
 const POSTS = [
 `Je viens de créer mon premier Persona 2.0 🎓
 
-Un agent IA qui répond comme un vrai utilisateur à partir de nos interviews de discovery. Et chaque réponse est sourcée.
+Un agent IA qui répond comme un vrai utilisateur basé sur un RAG d'interviews de discovery.
 
-{MARQUE}Merci Jules Ekmekdjian et Thibaut Sainrat pour cet atelier. Prochaine étape : le vibe coding pour les PM 🚀
+{MARQUE}Merci à @Jules Ekmekdjian et @Thibaut Sainrat pour ce moment de partage.
 
 #ProductManagement #IA #Discovery`,
-`Nos interviews utilisateurs dorment souvent dans un dossier après le cadrage. Aujourd'hui j'ai appris à les réveiller.
+`Nos interviews utilisateurs dorment souvent dans un dossier après le cadrage.
 
-Atelier 1/3 validé ✅ avec Jules Ekmekdjian et Thibaut Sainrat.
+Aujourd'hui j'ai appris à les réveiller grâce à un agent IA Persona 2.0 basé sur un RAG d'interviews de discovery.
 
-{MARQUE}#ProductManagement #IA #UserResearch`,
+{MARQUE}Merci à @Jules Ekmekdjian et @Thibaut Sainrat pour ce moment de partage.
+
+#ProductManagement #IA #UserResearch`,
 `Et si on pouvait interroger ses personas à tout moment ?
 
-C'est ce que j'ai construit pendant l'atelier Persona 2.0 animé par Jules Ekmekdjian et Thibaut Sainrat : un persona IA qui ne répond qu'à partir de nos vraies interviews.
+Un agent IA qui répond comme nos utilisateurs basé sur un RAG d'interviews de discovery. C'est ce que j'ai construit pendant l'atelier sur les Persona 2.0 animé par @Jules Ekmekdjian et @Thibaut Sainrat.
 
 {MARQUE}#ProductManagement #IA #Persona`,
 ];
@@ -276,7 +293,9 @@ function postText() {
   const m = $("marque").value.trim();
   return POSTS[VARIANT].replace("{MARQUE}", m ? `Ce qui m'a le plus marqué : ${m}\n\n` : "");
 }
-function refreshPost() { $("post").value = postText(); }
+function fitPost() { const t = $("post"); t.style.height = "auto"; t.style.height = (t.scrollHeight + 2) + "px"; }
+function refreshPost() { $("post").value = postText(); fitPost(); }
+$("post").addEventListener("input", fitPost);
 document.querySelectorAll(".variants button").forEach(b => b.addEventListener("click", () => {
   VARIANT = +b.dataset.v; document.querySelectorAll(".variants button").forEach(x => x.classList.toggle("on", x === b)); refreshPost();
 }));
@@ -287,29 +306,27 @@ $("form").addEventListener("submit", async (e) => {
   const cap = (s) => s.trim().replace(/\s+/g, " ");
   draw($("cert"), { prenom: cap($("prenom").value), nom: cap($("nom").value), poste: cap($("poste").value), photo: PHOTO, numero: numero() });
   BLOB = await new Promise(r => $("cert").toBlob(r, "image/png"));
+  $("certImg").src = URL.createObjectURL(BLOB);
   refreshPost();
-  $("step1").style.display = "none"; $("step2").style.display = "block"; window.scrollTo({ top: 0, behavior: "smooth" });
+  $("step1").style.display = "none"; $("step2").style.display = "block"; fitPost(); window.scrollTo({ top: 0, behavior: "smooth" });
 });
 $("back").addEventListener("click", () => { $("step2").style.display = "none"; $("step1").style.display = "block"; window.scrollTo({ top: 0 }); });
 
 function fileName() { return `certificat-persona-2-0-${($("prenom").value + "-" + $("nom").value).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-")}.png`; }
-function download() { const a = document.createElement("a"); a.href = URL.createObjectURL(BLOB); a.download = fileName(); document.body.appendChild(a); a.click(); a.remove(); }
+const IS_IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+$("hint").innerHTML = IS_IOS
+  ? "Après « Télécharger », touchez <b>Enregistrer l'image</b> pour la retrouver dans vos photos."
+  : "Le certificat est enregistré dans vos téléchargements et votre galerie.";
+function saveFile() { const a = document.createElement("a"); a.href = URL.createObjectURL(BLOB); a.download = fileName(); document.body.appendChild(a); a.click(); a.remove(); }
 async function copyText() { try { await navigator.clipboard.writeText($("post").value); return true; } catch { $("post").select(); try { return document.execCommand("copy"); } catch { return false; } } }
 
-$("download").addEventListener("click", () => { download(); toast("Certificat téléchargé"); });
-$("copy").addEventListener("click", async () => { toast((await copyText()) ? "Texte copié" : "Sélectionnez le texte pour le copier"); });
-$("share").addEventListener("click", async () => {
+$("download").addEventListener("click", async () => {
   const file = new File([BLOB], fileName(), { type: "image/png" });
-  const copied = await copyText();
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    toast(copied ? "Texte copié : choisissez LinkedIn, puis collez-le" : "Choisissez LinkedIn");
-    try { await navigator.share({ files: [file], text: $("post").value }); } catch (err) { /* partage annulé */ }
-  } else {
-    download();
-    toast("Certificat téléchargé et texte copié : créez un post et ajoutez l'image");
-    setTimeout(() => window.open("https://www.linkedin.com/feed/", "_blank"), 600);
-  }
+  if (IS_IOS && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file] }); } catch (err) { /* menu fermé */ }
+  } else { saveFile(); toast("Certificat téléchargé"); }
 });
+$("copy").addEventListener("click", async () => { toast((await copyText()) ? "Texte copié" : "Sélectionnez le texte pour le copier"); });
 
 prepare().then(() => draw($("sample"), { prenom: "Camille", nom: "Martin", poste: "Product Manager", photo: null, numero: "P20-2026-K7Q2" }));
 </script>
